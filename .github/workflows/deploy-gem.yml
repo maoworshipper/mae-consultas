@@ -1,0 +1,20 @@
+name: Publish Website to CPanel
+on:
+  push:
+    branches:
+      - prod/grupo-educativo-del-meta
+jobs:
+  FTP-Deploy-Action:
+    name: FTP-Deploy-Action
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v3
+    - name: 📂 Sync files
+      uses: SamKirkland/FTP-Deploy-Action@4.3.3
+      with:
+        server: ${{ secrets.SFTP_GEM_SERVER }}
+        username: ${{ secrets.SFTP_GEM_USER }}
+        password: ${{ secrets.SFTP_GEM_PASSWORD }}
+        protocol: ftp
+        port: 21
