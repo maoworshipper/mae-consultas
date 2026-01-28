@@ -40,8 +40,8 @@ $basePath = BASE_URL;
 
         <?php
         // Decide which view to show
-        // Show results if we have a POST request and either found results OR have an error
-        $showResults = $_SERVER['REQUEST_METHOD'] === 'POST' && (isset($found) || isset($error));
+        // Show results if we have found results OR have an error (from POST or GET)
+        $showResults = isset($found) || isset($error);
         
         if ($showResults):
             // Show results (or error message)
