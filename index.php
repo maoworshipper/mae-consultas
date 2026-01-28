@@ -14,7 +14,7 @@ date_default_timezone_set('America/Bogota');
 
 // Initialize variables for view
 $error = null;
-$found = false;
+$found = null;
 $results = [];
 $clientName = null;
 $clientId = null;
