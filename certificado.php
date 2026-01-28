@@ -71,11 +71,13 @@ try {
 
 class PDF extends FPDF
 {
-    function Header() {
+    function Header()
+    {
         $this->SetFont('Helvetica', 'B', 10);
     }
 
-    function Footer() {
+    function Footer()
+    {
         $this->SetY(-20);
         $this->SetFont('Arial', 'I', 10);
     }
@@ -83,6 +85,8 @@ class PDF extends FPDF
 
 $pdf = new PDF('L', 'mm', 'Letter');
 $pdf->AddPage();
+
+$pdf->AddFont('DejaVuSansCondensed-Bold', '', 'DejaVuSansCondensed-Bold.php');
 
 if (file_exists('assets/images/bgcerti.jpg')) {
     $pdf->Image('assets/images/bgcerti.jpg', 2, 3, 275, 210);
@@ -94,14 +98,14 @@ if ($rowusr2['perfil'] == "convenio" && $rowusr2['foto'] <> "") {
     }
 }
 
-$pdf->Ln(83);
-$pdf->SetFont('Arial', 'B', 20);
+$pdf->Ln(73);
+$pdf->SetFont('DejaVuSansCondensed-Bold', '', 20);
 $pdf->Cell(260, 5, mb_convert_encoding(strtoupper($cliente['Nombres'] . " " . $cliente['Apellidos']), 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 $pdf->Ln(3);
 $pdf->SetTextColor(0, 0, 0);
 $pdf->SetFont('Arial', 'B', 12);
 
-$cedula = $cliente['Identificacion'];
+$cedula = $cliente['Identificacion']. " de " . ($cliente['Lugarid'] ?? '');
 $tipo_id = $cliente['Tipo_Identificacion'] ?? 'CC';
 
 if ($tipo_id == "CC" || $tipo_id == "") {
@@ -135,6 +139,7 @@ if (strlen($courseName) > 44) {
             $linea1 .= $palabra . " ";
         }
     }
+    $pdf->SetFont('DejaVuSansCondensed-Bold', '', 18);
     $pdf->Ln(9);
     $pdf->Cell(260, 6, mb_convert_encoding(strtoupper(strtolower($linea1)), 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
     $pdf->Cell(260, 5, mb_convert_encoding(strtoupper(strtolower($linea2)), 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
@@ -142,7 +147,7 @@ if (strlen($courseName) > 44) {
     $pdf->Ln(1);
 } else {
     $pdf->Ln(12);
-    $pdf->SetFont('Arial', 'B', 20);
+    $pdf->SetFont('DejaVuSansCondensed-Bold', '', 20);
     $pdf->Cell(260, 8, mb_convert_encoding($courseName, 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
     $pdf->Ln(6);
 }
@@ -156,7 +161,7 @@ if ($fvencimiento !== "") {
 } else {
     $pdf->Cell(260, 6, mb_convert_encoding("Se expide el día " . date('d-m-Y', strtotime($codigofecha)), 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 }
-$pdf->Ln(6);
+$pdf->Ln(30);
 
 $pdf->SetFont('Arial', 'B', 14);
 $pdf->Cell(260, 6, $idElemento, 0, 1, 'C');
@@ -164,4 +169,3 @@ $pdf->Cell(260, 6, $idElemento, 0, 1, 'C');
 $nom_arc = "Certificado - " . $cliente['Nombres'] . " " . $cliente['Apellidos'] . " - " . $idElemento . ".pdf";
 ob_end_clean();
 $pdf->Output($nom_arc, 'I');
-?>
