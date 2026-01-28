@@ -29,7 +29,7 @@ Options -Indexes
 </FilesMatch>
 
 # Deny access to specific sensitive files
-<FilesMatch "^(config\.php|database\.php|\.env)$">
+<FilesMatch "^(config\.php|database\.php|\.env|README\.md|CHANGELOG\.md|LICENSE\.md|\.gitignore|composer\.json|composer\.lock)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
