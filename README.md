@@ -9,16 +9,13 @@ mae-consultas/
 ├── index.php              # Página principal con formulario de búsqueda y resultados
 ├── certificado.php        # Genera PDF del certificado
 ├── carnet.php             # Genera PDF del carnet
-├── config.php             # Configuración general
-├── database.php           # Conexión a base de datos
 ├── .htaccess              # Configuración de seguridad del servidor web
 ├── README.md              # Este archivo
 ├── assets/                # CSS, JS y otros recursos estáticos
 ├── fpdf/                  # Librería FPDF para generación de PDFs
-├── images/                # Imágenes de fondo para PDFs
-└── legacy/                # Aplicaciones anteriores
-    ├── consultas-mae/     # Versión moderna con Composer
-    └── mae-v8/           # Versión legacy PHP puro
+└── app/                   # Código de la aplicación
+    ├── Core/              # Configuración, base de datos y funciones
+    └── Views/             # Vistas HTML
 ```
 
 - Consulta por número de identificación del cliente
@@ -38,7 +35,7 @@ mae-consultas/
 
 La aplicación ya está instalada en la raíz del proyecto. Solo necesitas:
 
-1. Configurar la conexión a la base de datos en `config.php`
+1. Configurar la conexión a la base de datos en `app/Core/config.php`
 2. Asegurarse de que los directorios `assets/fotos/` y `assets/convenios/` tengan permisos de escritura si es necesario
 3. Acceder a `index.php` desde el navegador
 
@@ -55,16 +52,16 @@ Todas las imágenes del proyecto están centralizadas en **`assets/images/`**:
 - `index.php` - Página principal con formulario de búsqueda y resultados
 - `certificado.php` - Genera PDF del certificado
 - `carnet.php` - Genera PDF del carnet
-- `config.php` - Configuración general
-- `database.php` - Conexión a base de datos
 - `fpdf/` - Librería FPDF para generación de PDFs
 - `assets/` - CSS, JS y otros recursos estáticos
   - `assets/images/` - Todas las imágenes del proyecto
     - `bgcerti.jpg` - Fondo para certificados
     - `bgcarnet.jpg` - Fondo para carnets
     - `logo.png` - Logo de la empresa
+- `app/` - Código de la aplicación
+  - `app/Core/` - Configuración, base de datos y funciones
+  - `app/Views/` - Vistas HTML
 - `.htaccess` - Configuración de seguridad del servidor web
-- `legacy/` - Directorio con aplicaciones anteriores
 
 ## Uso
 
@@ -75,23 +72,15 @@ Todas las imágenes del proyecto están centralizadas en **`assets/images/`**:
 5. Ver los resultados en la tabla
 6. Hacer clic en "Certificado" o "Carnet" para descargar el PDF
 
-## Aplicaciones Legacy
-
-En el directorio `legacy/` se encuentran las versiones anteriores del sistema:
-
-- **`legacy/consultas-mae/`**: Versión moderna desarrollada con Composer, estructura MVC, y dependencias externas
-- **`legacy/mae-v8/`**: Versión legacy desarrollada en PHP puro sin dependencias externas
-
-Estas aplicaciones se mantienen como referencia y para migración gradual de datos si es necesario.
-
 ## Seguridad
 
 - La aplicación es pública y no requiere login
 - Validación de entrada para prevenir inyección SQL
 - Los PDFs se generan en tiempo real desde la base de datos
 - Archivos sensibles protegidos por `.htaccess`:
-  - `config.php` - Configuración de base de datos
-  - `database.php` - Conexión PDO
+  - `app/Core/config.php` - Configuración de base de datos
+  - `app/Core/database.php` - Conexión PDO
+  - `app/` - Código de la aplicación (bloquea acceso directo)
   - `fpdf/` - Librería FPDF (bloquea acceso directo)
 - Headers de seguridad HTTP incluidos
 - Deshabilitado el listado de directorios
