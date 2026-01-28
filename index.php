@@ -55,6 +55,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Process GET request for certificate ID
+if (isset($_GET['certi']) && !empty($_GET['certi'])) {
+    $certificateCode = $_GET['certi'];
+    $searchResult = searchByCertificateCode($certificateCode);
+    
+    $error = $searchResult['error'];
+    $found = $searchResult['found'];
+    $results = $searchResult['results'];
+    $clientName = $searchResult['client_name'] ?? null;
+    $clientId = $searchResult['client_id'] ?? null;
+    $searchType = $searchResult['search_type'] ?? null;
+}
+
 // Load view
 require_once 'app/Views/view.php';
 
