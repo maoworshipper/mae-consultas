@@ -28,9 +28,9 @@ define('ASSETS_PATH', BASE_PATH . '/assets');
 
 // Configuración de base de datos (misma que mae-v8)
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'maewebdb');
-define('DB_USER', 'maeusr');
-define('DB_PASS', '123456');
+define('DB_NAME', 'geducativometa_mwb8');
+define('DB_USER', 'geducativometa_con_musr');
+define('DB_PASS', 'uAheER,c57IpODY7');
 
 // Función helper para incluir archivos
 function require_path($relativePath) {
