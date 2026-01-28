@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'database.php';
+require_once 'app/Core/config.php';
+require_once 'app/Core/database.php';
 require_once FPDF_PATH . '/fpdf.php';
 
 date_default_timezone_set('America/Bogota');

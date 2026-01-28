@@ -43,7 +43,7 @@ Options -Indexes
   RewriteEngine On
 
   # Protect internal directories (no web access)
-  RewriteRule ^(fpdf|private|tests|.git)/ - [F,NC,L]
+  RewriteRule ^(app|config|fpdf|private|tests|.git)/ - [F,NC,L]
 
 </IfModule>
 

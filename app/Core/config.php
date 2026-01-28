@@ -10,13 +10,13 @@ if (ob_get_level() === 0) {
 }
 
 // Definir la ruta base del proyecto
-define('BASE_PATH', __DIR__);
+define('BASE_PATH', dirname(dirname(__DIR__)));
 
 // Definir la URL base
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $documentRoot = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? '');
-$currentDir = str_replace('\\', '/', __DIR__);
+$currentDir = str_replace('\\', '/', BASE_PATH);
 $basePath = $documentRoot ? str_replace($documentRoot, '', $currentDir) : '';
 $basePath = rtrim($basePath, '/');
 

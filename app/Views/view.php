@@ -45,10 +45,10 @@ $basePath = BASE_URL;
         
         if ($showResults):
             // Show results (or error message)
-            require_once __DIR__ . '/views/results.php';
+            require_once __DIR__ . '/results.php';
         else:
             // Show search form
-            require_once __DIR__ . '/views/search.php';
+            require_once __DIR__ . '/search.php';
         endif;
         ?>
 

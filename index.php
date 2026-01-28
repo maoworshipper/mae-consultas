@@ -5,9 +5,9 @@
  */
 
 // Load configuration and dependencies
-require_once 'config.php';
-require_once 'database.php';
-require_once 'functions.php';
+require_once 'app/Core/config.php';
+require_once 'app/Core/database.php';
+require_once 'app/Core/functions.php';
 
 // Set timezone
 date_default_timezone_set('America/Bogota');
@@ -56,5 +56,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Load view
-require_once 'view.php';
+require_once 'app/Views/view.php';
 
