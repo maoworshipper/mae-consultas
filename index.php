@@ -14,7 +14,7 @@ date_default_timezone_set('America/Bogota');
 
 // Initialize variables for view
 $error = null;
-$found = false;
+$found = null;
 $results = [];
 $clientName = null;
 $clientId = null;
@@ -53,6 +53,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     else {
         $error = 'Por favor ingrese un número de identificación o código de certificado';
     }
+}
+
+// Process GET request for certificate ID
+if (isset($_GET['certi']) && !empty($_GET['certi'])) {
+    $certificateCode = $_GET['certi'];
+    $searchResult = searchByCertificateCode($certificateCode);
+    
+    $error = $searchResult['error'];
+    $found = $searchResult['found'];
+    $results = $searchResult['results'];
+    $clientName = $searchResult['client_name'] ?? null;
+    $clientId = $searchResult['client_id'] ?? null;
+    $searchType = $searchResult['search_type'] ?? null;
 }
 
 // Load view
