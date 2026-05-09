@@ -15,6 +15,11 @@ if (ob_get_level() === 0) {
 // Definir la ruta base del proyecto
 define('BASE_PATH', dirname(dirname(__DIR__)));
 
+// Marca carga legítima vía entrypoint (include bajo /app/ sin esto → 403 en helpers)
+if (!defined('MAE_CONSULTAS_APP_LOADED')) {
+    define('MAE_CONSULTAS_APP_LOADED', true);
+}
+
 // Definir la URL base (evita usar HTTP_HOST no validado en producción)
 $configuredAppUrl = rtrim((string) mae_env('APP_URL', ''), '/');
 if ($configuredAppUrl !== '') {
@@ -48,4 +53,22 @@ function require_path($relativePath) {
 // Función helper para URLs
 function url($path = '') {
     return BASE_URL . '/' . ltrim($path, '/');
+}
+
+// Códigos QR en certificado/carnet (opcional; control solo por .env, como mae-v8 config.php)
+// Desactivado por defecto si no defines QR_ENABLED o si es false/0/off.
+if (!defined('QR_ENABLED')) {
+    define('QR_ENABLED', mae_env_bool('QR_ENABLED', false));
+}
+if (!defined('QR_REPLACE_PHOTO')) {
+    define('QR_REPLACE_PHOTO', mae_env_bool('QR_REPLACE_PHOTO', false));
+}
+if (!defined('QR_VERIFICATION_URL')) {
+    define(
+        'QR_VERIFICATION_URL',
+        mae_env(
+            'QR_VERIFICATION_URL',
+            rtrim(BASE_URL, '/') . '/index.php?certi={id}'
+        )
+    );
 }
