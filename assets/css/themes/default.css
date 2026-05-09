@@ -74,9 +74,9 @@
 
 :root {
   /* Colors */
-  --color-primary: #39aead;
-  --color-primary-dark: #2d8a89;
-  --color-primary-light: #4fc2c1;
+  --color-primary: #0b4da1;
+  --color-primary-dark: #008bcf;
+  --color-primary-light: #00c6d7;
   --color-primary-hover: #343539;
   --color-secondary: #343539;
   --color-secondary-dark: #2a2b2f;
