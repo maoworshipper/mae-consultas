@@ -21,6 +21,45 @@ function cleanCertificateCode($code) {
 }
 
 /**
+ * Normalize data source parameter.
+ */
+function normalizeDataSource($source) {
+    return $source === 'legacy' ? 'legacy' : 'main';
+}
+
+/**
+ * Feature flags from environment.
+ */
+function isLegacySearchEnabled() {
+    return mae_env_bool('LEGACY_DB_ENABLED', false);
+}
+
+function isCertificateFeatureEnabled() {
+    return mae_env_bool('FEATURE_CERTIFICATE_ENABLED', true);
+}
+
+function isCardFeatureEnabled() {
+    return mae_env_bool('FEATURE_CARD_ENABLED', true);
+}
+
+/**
+ * Return available database connections.
+ */
+function getAvailableDataSources() {
+    global $pdo, $pdoLegacy;
+
+    $sources = [
+        'main' => $pdo,
+    ];
+
+    if (isLegacySearchEnabled() && isset($pdoLegacy) && $pdoLegacy instanceof PDO) {
+        $sources['legacy'] = $pdoLegacy;
+    }
+
+    return $sources;
+}
+
+/**
  * Format legacy date to dd-mm-yyyy
  */
 function formatLegacyDate($date) {
@@ -60,13 +99,12 @@ function getCompanyInfo() {
 /**
  * Find client by identification number
  */
-function findClientByIdentification($id) {
-    global $pdo;
+function findClientByIdentification($id, PDO $db) {
     try {
-        $stmt = $pdo->prepare("SELECT Id_Cliente, Nombres, Apellidos, Identificacion 
-                               FROM clientes 
-                               WHERE Identificacion = ? 
-                               LIMIT 1");
+        $stmt = $db->prepare("SELECT Id_Cliente, Nombres, Apellidos, Identificacion
+                              FROM clientes
+                              WHERE Identificacion = ?
+                              LIMIT 1");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
@@ -78,13 +116,12 @@ function findClientByIdentification($id) {
 /**
  * Get active enrollments for a client
  */
-function getActiveEnrollments($clientId) {
-    global $pdo;
+function getActiveEnrollments($clientId, PDO $db) {
     try {
-        $stmt = $pdo->prepare("SELECT id_matricula 
-                               FROM matriculas 
-                               WHERE id_cliente = ? 
-                               AND estado <> 0 
+        $stmt = $db->prepare("SELECT id_matricula
+                               FROM matriculas
+                               WHERE id_cliente = ?
+                               AND estado <> 0
                                AND estado <> 4");
         $stmt->execute([$clientId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -97,20 +134,19 @@ function getActiveEnrollments($clientId) {
 /**
  * Get courses by enrollment IDs
  */
-function getCoursesByEnrollments($enrollmentIds) {
-    global $pdo;
+function getCoursesByEnrollments($enrollmentIds, PDO $db) {
     if (empty($enrollmentIds)) return [];
-    
+
     $placeholders = str_repeat('?,', count($enrollmentIds) - 1) . '?';
-    
+
     try {
-        $sql = "SELECT ci.*, s.vigencia, s.vence 
-                FROM cursos_inscritos ci 
-                LEFT JOIN servicios s ON ci.id_servicio = s.id 
+        $sql = "SELECT ci.*, s.vigencia, s.vence
+                FROM cursos_inscritos ci
+                LEFT JOIN servicios s ON ci.id_servicio = s.id
                 WHERE ci.id_matricula IN ($placeholders)
                 ORDER BY ci.f_inscripcion DESC";
-        
-        $stmt = $pdo->prepare($sql);
+
+        $stmt = $db->prepare($sql);
         $stmt->execute($enrollmentIds);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
@@ -122,16 +158,15 @@ function getCoursesByEnrollments($enrollmentIds) {
 /**
  * Get course by certificate ID
  */
-function getCourseByCertificateId($id) {
-    global $pdo;
+function getCourseByCertificateId($id, PDO $db) {
     try {
-        $sql = "SELECT ci.*, s.vigencia, s.vence 
-                FROM cursos_inscritos ci 
-                LEFT JOIN servicios s ON ci.id_servicio = s.id 
-                WHERE ci.id = ? 
+        $sql = "SELECT ci.*, s.vigencia, s.vence
+                FROM cursos_inscritos ci
+                LEFT JOIN servicios s ON ci.id_servicio = s.id
+                WHERE ci.id = ?
                 LIMIT 1";
-        
-        $stmt = $pdo->prepare($sql);
+
+        $stmt = $db->prepare($sql);
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
@@ -143,12 +178,11 @@ function getCourseByCertificateId($id) {
 /**
  * Get client by ID
  */
-function getClientById($id) {
-    global $pdo;
+function getClientById($id, PDO $db) {
     try {
-        $stmt = $pdo->prepare("SELECT Id_Cliente, Nombres, Apellidos, Identificacion 
-                               FROM clientes 
-                               WHERE Id_Cliente = ? 
+        $stmt = $db->prepare("SELECT Id_Cliente, Nombres, Apellidos, Identificacion
+                               FROM clientes
+                               WHERE Id_Cliente = ?
                                LIMIT 1");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -161,18 +195,17 @@ function getClientById($id) {
 /**
  * Get client by enrollment ID
  */
-function getClientByEnrollmentId($enrollmentId) {
-    global $pdo;
+function getClientByEnrollmentId($enrollmentId, PDO $db) {
     try {
-        $stmt = $pdo->prepare("SELECT id_cliente 
-                               FROM matriculas 
-                               WHERE id_matricula = ? 
+        $stmt = $db->prepare("SELECT id_cliente
+                               FROM matriculas
+                               WHERE id_matricula = ?
                                LIMIT 1");
         $stmt->execute([$enrollmentId]);
         $enrollment = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($enrollment) {
-            return getClientById($enrollment['id_cliente']);
+            return getClientById($enrollment['id_cliente'], $db);
         }
         return null;
     } catch (Exception $e) {
@@ -220,6 +253,27 @@ function filterExpired($results) {
     return $filtered;
 }
 
+function mapCourseToResult($course, $source) {
+    $vigencia = $course['vigencia'] ?? 12;
+    $courseDate = $course['f_inscripcion'] ?? '';
+    $courseName = $course['nombre'] ?? '';
+    $hours = $course['horas'] ?? '';
+    $courseId = $course['id'] ?? '';
+
+    $expiration = calculateExpirationDate($courseDate, $vigencia);
+    $formattedDate = formatLegacyDate($courseDate);
+
+    return [
+        'id' => $courseId,
+        'source' => normalizeDataSource($source),
+        'course_name' => $courseName,
+        'course_date' => $formattedDate,
+        'hours' => $hours,
+        'valid_until' => $expiration,
+        'expires' => $course['vence'] ?? 1,
+    ];
+}
+
 /**
  * Search certificates by identification
  */
@@ -233,59 +287,44 @@ function searchByIdentification($identification) {
             'results' => []
         ];
     }
-    
-    $client = findClientByIdentification($cleanId);
-    
-    if (!$client) {
+
+    $sources = getAvailableDataSources();
+    $results = [];
+    $clientName = '';
+    $clientIdNumber = '';
+
+    foreach ($sources as $sourceName => $db) {
+        $client = findClientByIdentification($cleanId, $db);
+        if (!$client) {
+            continue;
+        }
+
+        if ($clientName === '') {
+            $clientName = trim(($client['Nombres'] ?? '') . ' ' . ($client['Apellidos'] ?? ''));
+            $clientIdNumber = $client['Identificacion'] ?? '';
+        }
+
+        $enrollmentIds = getActiveEnrollments($client['Id_Cliente'], $db);
+        if (empty($enrollmentIds)) {
+            continue;
+        }
+
+        $courses = getCoursesByEnrollments($enrollmentIds, $db);
+        foreach ($courses as $course) {
+            $results[] = mapCourseToResult($course, $sourceName);
+        }
+    }
+
+    if (empty($results)) {
         return [
             'error' => 'No se encontraron registros para la identificación proporcionada',
             'found' => false,
             'results' => []
         ];
     }
-    
-    $clientId = $client['Id_Cliente'];
-    $clientName = trim(($client['Nombres'] ?? '') . ' ' . ($client['Apellidos'] ?? ''));
-    $clientIdNumber = $client['Identificacion'];
-    
-    $enrollmentIds = getActiveEnrollments($clientId);
-    
-    if (empty($enrollmentIds)) {
-        return [
-            'error' => 'No se encontraron cursos activos para este cliente',
-            'found' => false,
-            'results' => [],
-            'client_name' => $clientName,
-            'client_id' => $clientIdNumber
-        ];
-    }
-    
-    $courses = getCoursesByEnrollments($enrollmentIds);
-    $results = [];
-    
-    foreach ($courses as $course) {
-        $vigencia = $course['vigencia'] ?? 12; // Default 12 months
-        $courseDate = $course['f_inscripcion'] ?? ''; // Date field is f_inscripcion
-        $courseName = $course['nombre'] ?? ''; // Changed from nombre_curso to nombre
-        $hours = $course['horas'] ?? '';
-        $courseId = $course['id'] ?? '';
-        
-        $expiration = calculateExpirationDate($courseDate, $vigencia);
-        $formattedDate = formatLegacyDate($courseDate);
-        
-        $results[] = [
-            'id' => $courseId,
-            'course_name' => $courseName,
-            'course_date' => $formattedDate,
-            'hours' => $hours,
-            'valid_until' => $expiration,
-            'expires' => $course['vence'] ?? 1,
-        ];
-    }
-    
-    // Filter out expired certificates
+
     $results = filterExpired($results);
-    
+
     return [
         'error' => null,
         'found' => !empty($results),
@@ -309,56 +348,44 @@ function searchByCertificateCode($certificateCode) {
             'results' => []
         ];
     }
-    
-    $course = getCourseByCertificateId($cleanCode);
-    
-    if (!$course) {
+
+    $sources = getAvailableDataSources();
+    $results = [];
+    $clientName = '';
+    $clientIdNumber = '';
+
+    foreach ($sources as $sourceName => $db) {
+        $course = getCourseByCertificateId($cleanCode, $db);
+        if (!$course) {
+            continue;
+        }
+
+        $results[] = mapCourseToResult($course, $sourceName);
+        if ($clientName === '') {
+            $enrollmentId = $course['id_matricula'] ?? null;
+            if ($enrollmentId) {
+                $client = getClientByEnrollmentId($enrollmentId, $db);
+                if ($client) {
+                    $clientName = trim(($client['Nombres'] ?? '') . ' ' . ($client['Apellidos'] ?? ''));
+                    $clientIdNumber = $client['Identificacion'] ?? '';
+                }
+            }
+        }
+    }
+
+    if (empty($results)) {
         return [
             'error' => 'No se encontró el certificado con el código proporcionado',
             'found' => false,
             'results' => []
         ];
     }
-    
-    $enrollmentId = $course['id_matricula'] ?? null;
-    $client = null;
-    
-    if ($enrollmentId) {
-        $client = getClientByEnrollmentId($enrollmentId);
-    }
-    
-    $clientName = '';
-    $clientIdNumber = '';
-    
-    if ($client) {
-        $clientName = trim(($client['Nombres'] ?? '') . ' ' . ($client['Apellidos'] ?? ''));
-        $clientIdNumber = $client['Identificacion'] ?? '';
-    }
-    
-    $vigencia = $course['vigencia'] ?? 12;
-    $courseDate = $course['f_inscripcion'] ?? ''; // Date field is f_inscripcion
-    $courseName = $course['nombre'] ?? ''; // Changed from nombre_curso to nombre
-    $hours = $course['horas'] ?? '';
-    $courseId = $course['id'] ?? '';
-    
-    $expiration = calculateExpirationDate($courseDate, $vigencia);
-    $formattedDate = formatLegacyDate($courseDate);
-    
-    $results = [[
-        'id' => $courseId,
-        'course_name' => $courseName,
-        'course_date' => $formattedDate,
-        'hours' => $hours,
-        'valid_until' => $expiration,
-        'expires' => $course['vence'] ?? 1,
-    ]];
-    
-    // Filter out expired certificates
+
     $results = filterExpired($results);
-    
+
     return [
         'error' => null,
-        'found' => true,
+        'found' => !empty($results),
         'results' => $results,
         'client_name' => $clientName,
         'client_id' => $clientIdNumber,

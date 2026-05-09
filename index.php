@@ -8,9 +8,14 @@
 require_once 'app/Core/config.php';
 require_once 'app/Core/database.php';
 require_once 'app/Core/functions.php';
+require_once 'app/Core/security.php';
 
 // Set timezone
 date_default_timezone_set('America/Bogota');
+
+if (!mae_enforce_rate_limit('search', 60, 60)) {
+    mae_reject_request(429, 'Demasiadas solicitudes. Intente nuevamente en un minuto.');
+}
 
 // Initialize variables for view
 $error = null;
