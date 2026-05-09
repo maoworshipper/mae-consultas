@@ -1,7 +1,7 @@
 <?php
 /**
- * Generación de certificado PDF (layout y lógica alineados con mae-v8/src/reports/certificado_pdf.php).
- * Requiere: config, database ($pdo apunta a la fuente elegida), funciones de seguridad ya aplicadas en el entrypoint.
+ * Certificado PDF — mismo contenido y disposición que mae-v8/src/reports/certificado_pdf.php.
+ * Entrypoint define MAE_CONSULTAS_INTERNAL, config/database/security ya cargados.
  */
 
 if (!defined('MAE_CONSULTAS_INTERNAL') || MAE_CONSULTAS_INTERNAL !== true) {
@@ -20,16 +20,6 @@ ob_start();
 require_once FPDF_PATH . '/fpdf.php';
 date_default_timezone_set('America/Bogota');
 
-try {
-	$stmt_empresa = $pdo->query("SELECT * FROM empresa");
-	$empresa = $stmt_empresa->fetch(PDO::FETCH_NUM);
-	if (!$empresa) {
-		$empresa = ['', '', '', '', '', '', '', ''];
-	}
-} catch (PDOException $e) {
-	$empresa = ['', '', '', '', '', '', '', ''];
-}
-
 class PDF extends FPDF
 {
 	function Header()
@@ -39,16 +29,8 @@ class PDF extends FPDF
 
 	function Footer()
 	{
-		global $empresa;
 		$this->SetY(-20);
-		$this->SetFont('Roboto-Regular', '', 10);
-		$this->SetTextColor(11, 77, 161);
-
-		$linea1 = mb_convert_encoding($empresa[3] . ' - ' . $empresa[4] . ' - ' . $empresa[5], 'ISO-8859-1', 'UTF-8');
-		$linea2 = mb_convert_encoding('Email: ' . $empresa[6] . ' - ' . $empresa[7], 'ISO-8859-1', 'UTF-8');
-
-		$this->Cell(260, 5, $linea1, 0, 1, 'C');
-		$this->Cell(260, 5, $linea2, 0, 1, 'C');
+		$this->SetFont('Arial', 'I', 10);
 	}
 }
 
@@ -68,7 +50,6 @@ try {
 	if (!$rowservi) {
 		$rowservi = [0, 0, 12];
 	}
-	$categoria = $rowservi[0] ?? 0;
 	$vence = $rowservi[1] ?? 0;
 	$vigencia = $rowservi[2] ?? 12;
 } catch (PDOException $e) {
@@ -78,30 +59,16 @@ try {
 
 $codigofecha = $row[7];
 
-$mesesEspanol = [
-	1 => 'enero',
-	2 => 'febrero',
-	3 => 'marzo',
-	4 => 'abril',
-	5 => 'mayo',
-	6 => 'junio',
-	7 => 'julio',
-	8 => 'agosto',
-	9 => 'septiembre',
-	10 => 'octubre',
-	11 => 'noviembre',
-	12 => 'diciembre'
-];
-
+$fvencimiento = '';
 if ($vence == 1 || $vence == true) {
 	$tsVence = strtotime(mae_fecha_validez_dmy($codigofecha, (int) $vigencia, 'Y-m-d'));
-	$fvencimiento = date('j', $tsVence) . " de " . $mesesEspanol[(int)date('n', $tsVence)] . " de " . date('Y', $tsVence);
-} else {
-	$fvencimiento = "";
+	if ($tsVence !== false) {
+		$mesesEspanol = [1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril', 5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto', 9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'];
+		$fvencimiento = date('j', $tsVence) . ' de ' . $mesesEspanol[(int) date('n', $tsVence)] . ' de ' . date('Y', $tsVence);
+	}
 }
 
 $tsEmit = mae_f_inscripcion_to_ts($codigofecha) ?: time();
-$fechaEmitCert = date('j', $tsEmit) . " de " . $mesesEspanol[(int)date('n', $tsEmit)] . " de " . date('Y', $tsEmit);
 
 try {
 	$stmt_matricula = $pdo->prepare("SELECT id_cliente FROM matriculas WHERE id_matricula = :id_matricula");
@@ -135,40 +102,38 @@ $pdf->AddPage();
 
 $pdf->Image(mae_report_image_path('bgcerti'), 2, 3, 275, 210);
 
-$pdf->AddFont('Montserrat-ExtraBold', '', 'Montserrat-ExtraBold.php');
-$pdf->AddFont('Roboto-Regular', '', 'Roboto-Regular.php');
-$pdf->AddFont('Roboto-Bold', '', 'Roboto-Bold.php');
+$pdf->AddFont('DejaVuSansCondensed', '', 'DejaVuSansCondensed.php');
+$pdf->AddFont('DejaVuSansCondensed-Bold', '', 'DejaVuSansCondensed-Bold.php');
+$pdf->AddFont('DejaVuSansCondensed-Oblique', '', 'DejaVuSansCondensed-Oblique.php');
 
+$conveniosDir = BASE_PATH . '/convenios/';
 if ($rowusr2[2] == "convenio" && $rowusr2[3] <> "") {
 	$safeConvenioLogo = mae_sanitize_image_filename((string) $rowusr2[3]);
-	if ($safeConvenioLogo !== '' && file_exists(__DIR__ . '/../../convenios/' . $safeConvenioLogo)) {
-		$pdf->Image(__DIR__ . '/../../convenios/' . $safeConvenioLogo, 85, 27, 50, 24);
+	if ($safeConvenioLogo !== '' && is_file($conveniosDir . $safeConvenioLogo)) {
+		$pdf->Image($conveniosDir . $safeConvenioLogo, 85, 27, 50, 24);
 	}
 }
-$pdf->Ln(95);
-$pdf->SetFont('Montserrat-ExtraBold', '', 20);
-$pdf->SetTextColor(11, 77, 161);
+$pdf->Ln(73);
+$pdf->SetFont('DejaVuSansCondensed-Bold', '', 20);
 $pdf->Cell(260, 5, strtoupper(mb_convert_encoding($cliente[4] . " " . $cliente[3], 'ISO-8859-1', 'UTF-8')), 0, 1, 'C');
-$pdf->Ln(5);
+$pdf->Ln(3);
 
-$documentoFormateado = is_numeric($cliente[1]) ? number_format((float)$cliente[1], 0, ',', '.') : $cliente[1];
 $pdf->SetTextColor(0, 0, 0);
-$pdf->SetFont('Roboto-Regular', '', 12);
-$cedula = $documentoFormateado . " de " . $cliente[2];
+$pdf->SetFont('Arial', 'B', 12);
+$cedula = $cliente[1] . " de " . $cliente[2];
 if ($cliente[15] == "CC" || $cliente[15] == "") {
-	$pdf->Cell(260, 6, mb_convert_encoding("Con cédula de ciudadanía No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+	$pdf->Cell(260, 6, mb_convert_encoding("Identificado con cédula de ciudadanía", 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 } elseif ($cliente[15] == "CE") {
-	$pdf->Cell(260, 6, mb_convert_encoding("Con cédula de extranjería No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+	$pdf->Cell(260, 6, mb_convert_encoding("Identificado con cédula de extranjería", 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 } elseif ($cliente[15] == "PASAPORTE") {
-	$pdf->Cell(260, 6, mb_convert_encoding("Con pasaporte No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+	$pdf->Cell(260, 6, mb_convert_encoding("Identificado con pasaporte", 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 } elseif ($cliente[15] == "TI") {
-	$pdf->Cell(260, 6, mb_convert_encoding("Con tarjeta de identidad No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+	$pdf->Cell(260, 6, mb_convert_encoding("Identificado con tarjeta de identidad", 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 } elseif ($cliente[15] == "PPT") {
-	$pdf->Cell(260, 6, mb_convert_encoding("Con permiso de protección temporal No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+	$pdf->Cell(260, 6, mb_convert_encoding("Identificado con permiso de protección temporal", 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 }
+$pdf->Cell(260, 6, mb_convert_encoding("No. " . $cedula, 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 
-$pdf->SetTextColor(253, 184, 40);
-$pdf->SetFont('Montserrat-ExtraBold', '', 20);
 if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 44) {
 	$palabras = explode(" ", $row[3]);
 	$caract = 0;
@@ -185,7 +150,7 @@ if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 44) {
 			$linea1 .= $palabra . " ";
 		}
 	}
-	$pdf->SetFont('Montserrat-ExtraBold', '', 16);
+	$pdf->SetFont('DejaVuSansCondensed-Bold', '', 18);
 	$pdf->Ln(9);
 	$pdf->Cell(260, 6, strtoupper(strtolower(mb_convert_encoding($linea1, 'ISO-8859-1', 'UTF-8'))), 0, 1, 'C');
 	$pdf->Cell(260, 5, strtoupper(strtolower(mb_convert_encoding($linea2, 'ISO-8859-1', 'UTF-8'))), 0, 1, 'C');
@@ -193,24 +158,26 @@ if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 44) {
 	$pdf->Ln(1);
 } else {
 	$pdf->Ln(12);
-	$pdf->SetFont('Montserrat-ExtraBold', '', 20);
+	$pdf->SetFont('DejaVuSansCondensed-Bold', '', 20);
 	$pdf->Cell(260, 8, mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 	$pdf->Ln(6);
 }
 
+$fechaEmitCorta = date('d-m-Y', $tsEmit);
+$fvencimientoCorto = ($fvencimiento !== '') ? date('d-m-Y', strtotime(mae_fecha_validez_dmy($codigofecha, (int) $vigencia, 'Y-m-d'))) : '';
+
 $pdf->SetTextColor(0, 0, 0);
-$pdf->SetFont('Roboto-Regular', '', 11);
-$finalDate = "";
-if ($fvencimiento !== "") {
-	$finalDate = " - Válido hasta el " . $fvencimiento;
+$pdf->SetFont('Arial', 'B', 12);
+$pdf->Cell(260, 6, mb_convert_encoding("Con una intensidad horaria de " . $row[4] . " horas", 'ISO-8859-1'), 0, 1, 'C');
+$pdf->SetFont('Arial', '', 12);
+if ($fvencimientoCorto !== '') {
+	$pdf->Cell(260, 6, mb_convert_encoding("Se expide el día " . $fechaEmitCorta . " - Válido hasta " . $fvencimientoCorto, 'ISO-8859-1'), 0, 1, 'C');
+} else {
+	$pdf->Cell(260, 6, mb_convert_encoding("Se expide el día " . $fechaEmitCorta, 'ISO-8859-1'), 0, 1, 'C');
 }
-
-$pdf->Cell(260, 5, mb_convert_encoding("Se expide el certificado en la ciudad de Villavicencio,", 'ISO-8859-1'), 0, 1, 'C');
-$pdf->Cell(260, 5, mb_convert_encoding("el día " . $fechaEmitCert . $finalDate, 'ISO-8859-1'), 0, 1, 'C');
-$pdf->Cell(260, 5, mb_convert_encoding("Con una intensidad horaria de " . $row[4] . " horas", 'ISO-8859-1'), 0, 1, 'C');
-
-$pdf->SetFont('Roboto-Bold', '', 11);
-$pdf->Cell(260, 5, mb_convert_encoding("Código de validación: " . $row[0], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+$pdf->Ln(30);
+$pdf->SetFont('Arial', 'B', 14);
+$pdf->Cell(260, 6, mb_convert_encoding($row[0], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 
 if (QR_ENABLED) {
 	addQRToPDF($pdf, $idElemento, 230, 42, 40, 40, 'certificado');
