@@ -1,9 +1,15 @@
 <?php
 require_once 'app/Core/config.php';
 require_once 'app/Core/database.php';
+require_once 'app/Core/functions.php';
+require_once 'app/Core/security.php';
 require_once FPDF_PATH . '/fpdf.php';
 
 date_default_timezone_set('America/Bogota');
+
+if (!isCardFeatureEnabled()) {
+    mae_reject_request(403, 'La generación de carnets está deshabilitada.');
+}
 
 class PDF extends FPDF
 {
@@ -13,18 +19,33 @@ class PDF extends FPDF
 
 $idElemento = intval($_GET['certi'] ?? 0);
 if (!$idElemento) {
-    die('ID de certificado requerido');
+    mae_reject_request(400, 'ID de certificado requerido');
+}
+
+if (!mae_enforce_rate_limit('pdf_carnet', 30, 60)) {
+    mae_reject_request(429, 'Demasiadas solicitudes. Intente nuevamente en un minuto.');
+}
+
+$source = normalizeDataSource($_GET['src'] ?? 'main');
+$token = (string)($_GET['token'] ?? '');
+if (!mae_verify_certificate_token($idElemento, $token, $source)) {
+    mae_reject_request(403, 'Token de acceso inválido');
+}
+
+$selectedPdo = $source === 'legacy' ? ($pdoLegacy ?? null) : $pdo;
+if (!$selectedPdo instanceof PDO) {
+    mae_reject_request(400, 'Fuente de datos no disponible.');
 }
 
 try {
-    $stmt_cursos = $pdo->prepare("SELECT * FROM cursos_inscritos WHERE id = :id AND estado <> 0 AND estado <> 7");
+    $stmt_cursos = $selectedPdo->prepare("SELECT * FROM cursos_inscritos WHERE id = :id AND estado <> 0 AND estado <> 7");
     $stmt_cursos->execute([':id' => $idElemento]);
     $row = $stmt_cursos->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         die('Curso no encontrado');
     }
 
-    $stmt_servi = $pdo->prepare("SELECT vence, vigencia FROM servicios WHERE id = :id");
+    $stmt_servi = $selectedPdo->prepare("SELECT vence, vigencia FROM servicios WHERE id = :id");
     $stmt_servi->execute([':id' => $row['id_servicio']]);
     $rowservi = $stmt_servi->fetch(PDO::FETCH_ASSOC);
     $vence = $rowservi['vence'] ?? 0;
@@ -43,26 +64,30 @@ if ($vence == 1 || $vence == true) {
     $fvencimiento = "";
 }
 
-$fechaok = date("d-m-Y", mktime(12, 0, 0, 1, $codigofecha - 1, 1900));
-
 try {
-    $stmt_matricula = $pdo->prepare("SELECT id_cliente FROM matriculas WHERE id_matricula = :id_matricula");
+    $stmt_matricula = $selectedPdo->prepare("SELECT id_cliente FROM matriculas WHERE id_matricula = :id_matricula");
     $stmt_matricula->execute([':id_matricula' => $row['id_matricula']]);
     $matriculas = $stmt_matricula->fetch(PDO::FETCH_ASSOC);
     if (!$matriculas) {
         die('Matrícula no encontrada');
     }
 
-    $stmt_cliente = $pdo->prepare("SELECT * FROM clientes WHERE Id_Cliente = :id_cliente");
+    $stmt_cliente = $selectedPdo->prepare("SELECT * FROM clientes WHERE Id_Cliente = :id_cliente");
     $stmt_cliente->execute([':id_cliente' => $matriculas['id_cliente']]);
     $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
     if (!$cliente) {
         die('Cliente no encontrado');
     }
 
-    $stmt_rh = $pdo->prepare("SELECT * FROM rh WHERE id = :id");
-    $stmt_rh->execute([':id' => $cliente['Rh'] ?? 0]);
-    $rrh = $stmt_rh->fetch(PDO::FETCH_ASSOC);
+    $rrh = [];
+    try {
+        $stmt_rh = $selectedPdo->prepare("SELECT * FROM rh WHERE id = :id");
+        $stmt_rh->execute([':id' => $cliente['Rh'] ?? 0]);
+        $rrh = $stmt_rh->fetch(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        // No detener la generación del carnet por fallo en RH.
+        error_log("Error obteniendo RH: " . $e->getMessage());
+    }
 } catch (PDOException $e) {
     error_log("Error obteniendo datos del cliente: " . $e->getMessage());
     die('Error al obtener datos del cliente');

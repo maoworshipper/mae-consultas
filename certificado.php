@@ -1,24 +1,45 @@
 <?php
 require_once 'app/Core/config.php';
 require_once 'app/Core/database.php';
+require_once 'app/Core/functions.php';
+require_once 'app/Core/security.php';
 require_once FPDF_PATH . '/fpdf.php';
 
 date_default_timezone_set('America/Bogota');
 
+if (!isCertificateFeatureEnabled()) {
+    mae_reject_request(403, 'La generación de certificados está deshabilitada.');
+}
+
 $idElemento = intval($_GET['certi'] ?? 0);
 if (!$idElemento) {
-    die('ID de certificado requerido');
+    mae_reject_request(400, 'ID de certificado requerido');
+}
+
+if (!mae_enforce_rate_limit('pdf_certificado', 30, 60)) {
+    mae_reject_request(429, 'Demasiadas solicitudes. Intente nuevamente en un minuto.');
+}
+
+$source = normalizeDataSource($_GET['src'] ?? 'main');
+$token = (string)($_GET['token'] ?? '');
+if (!mae_verify_certificate_token($idElemento, $token, $source)) {
+    mae_reject_request(403, 'Token de acceso inválido');
+}
+
+$selectedPdo = $source === 'legacy' ? ($pdoLegacy ?? null) : $pdo;
+if (!$selectedPdo instanceof PDO) {
+    mae_reject_request(400, 'Fuente de datos no disponible.');
 }
 
 try {
-    $stmt_cursos = $pdo->prepare("SELECT * FROM cursos_inscritos WHERE id = :id AND estado <> 0 AND estado <> 4 AND estado <> 7");
+    $stmt_cursos = $selectedPdo->prepare("SELECT * FROM cursos_inscritos WHERE id = :id AND estado <> 0 AND estado <> 4 AND estado <> 7");
     $stmt_cursos->execute([':id' => $idElemento]);
     $row = $stmt_cursos->fetch(PDO::FETCH_ASSOC);
     if (!$row) {
         die('Curso no encontrado');
     }
 
-    $stmt_servicios = $pdo->prepare("SELECT categoria_servicio, vence, vigencia FROM servicios WHERE id = :id");
+    $stmt_servicios = $selectedPdo->prepare("SELECT categoria_servicio, vence, vigencia FROM servicios WHERE id = :id");
     $stmt_servicios->execute([':id' => $row['id_servicio']]);
     $rowservi = $stmt_servicios->fetch(PDO::FETCH_ASSOC);
     $categoria = $rowservi['categoria_servicio'] ?? 0;
@@ -31,8 +52,6 @@ try {
 
 $codigofecha = $row['f_inscripcion'];
 
-$codigofecha_num = is_numeric($codigofecha) ? (int)$codigofecha : 0;
-
 if ($vence == 1 || $vence == true) {
     $fvencimiento = strtotime("+{$vigencia} months", strtotime($codigofecha));
     $fvencimiento = date("d-m-Y", $fvencimiento);
@@ -40,29 +59,30 @@ if ($vence == 1 || $vence == true) {
     $fvencimiento = "";
 }
 
-$fechaok = date("d-m-Y", mktime(12, 0, 0, 1, $codigofecha_num - 1, 1900));
-
 try {
-    $stmt_matricula = $pdo->prepare("SELECT id_cliente FROM matriculas WHERE id_matricula = :id_matricula");
+    $stmt_matricula = $selectedPdo->prepare("SELECT id_cliente FROM matriculas WHERE id_matricula = :id_matricula");
     $stmt_matricula->execute([':id_matricula' => $row['id_matricula']]);
     $matriculas = $stmt_matricula->fetch(PDO::FETCH_ASSOC);
     if (!$matriculas) {
         die('Matrícula no encontrada');
     }
 
-    $stmt_cliente = $pdo->prepare("SELECT * FROM clientes WHERE Id_Cliente = :id_cliente");
+    $stmt_cliente = $selectedPdo->prepare("SELECT * FROM clientes WHERE Id_Cliente = :id_cliente");
     $stmt_cliente->execute([':id_cliente' => $matriculas['id_cliente']]);
     $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
     if (!$cliente) {
         die('Cliente no encontrado');
     }
 
-    $usrregistro = $row['usrregistro'] ?? 0;
-    $stmt_usr2 = $pdo->prepare("SELECT password, usuario, perfil, foto FROM usuarios WHERE id = :id");
-    $stmt_usr2->execute([':id' => $usrregistro]);
-    $rowusr2 = $stmt_usr2->fetch(PDO::FETCH_ASSOC);
-    if (!$rowusr2) {
-        $rowusr2 = ['foto' => ''];
+    $rowusr2 = ['foto' => '', 'perfil' => ''];
+    try {
+        $usrregistro = $row['usrregistro'] ?? 0;
+        $stmt_usr2 = $selectedPdo->prepare("SELECT password, usuario, perfil, foto FROM usuarios WHERE id = :id");
+        $stmt_usr2->execute([':id' => $usrregistro]);
+        $rowusr2 = $stmt_usr2->fetch(PDO::FETCH_ASSOC) ?: $rowusr2;
+    } catch (PDOException $e) {
+        // No detener la generación del certificado por fallo en usuario registrador.
+        error_log("Error obteniendo usuario registrador: " . $e->getMessage());
     }
 } catch (PDOException $e) {
     error_log("Error obteniendo datos del cliente: " . $e->getMessage());
@@ -93,8 +113,9 @@ if (file_exists('assets/images/bgcerti.jpg')) {
 }
 
 if ($rowusr2['perfil'] == "convenio" && $rowusr2['foto'] <> "") {
-    if (file_exists('convenios/' . $rowusr2['foto'])) {
-        $pdf->Image('convenios/' . $rowusr2['foto'], 85, 27, 50, 24);
+    $safeConvenioLogo = mae_sanitize_image_filename((string) $rowusr2['foto']);
+    if ($safeConvenioLogo !== '' && file_exists('convenios/' . $safeConvenioLogo)) {
+        $pdf->Image('convenios/' . $safeConvenioLogo, 85, 27, 50, 24);
     }
 }
 

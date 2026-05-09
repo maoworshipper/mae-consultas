@@ -4,6 +4,9 @@
  * Versión simplificada sin dependencias
  */
 
+require_once __DIR__ . '/env.php';
+mae_load_env();
+
 // Iniciar output buffering
 if (ob_get_level() === 0) {
     ob_start();
@@ -12,25 +15,25 @@ if (ob_get_level() === 0) {
 // Definir la ruta base del proyecto
 define('BASE_PATH', dirname(dirname(__DIR__)));
 
-// Definir la URL base
-$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$documentRoot = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? '');
-$currentDir = str_replace('\\', '/', BASE_PATH);
-$basePath = $documentRoot ? str_replace($documentRoot, '', $currentDir) : '';
-$basePath = rtrim($basePath, '/');
-
-define('BASE_URL', $protocol . '://' . $host . $basePath);
+// Definir la URL base (evita usar HTTP_HOST no validado en producción)
+$configuredAppUrl = rtrim((string) mae_env('APP_URL', ''), '/');
+if ($configuredAppUrl !== '') {
+    define('BASE_URL', $configuredAppUrl);
+} else {
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+    $host = $_SERVER['SERVER_NAME'] ?? 'localhost';
+    $documentRoot = str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? '');
+    $currentDir = str_replace('\\', '/', BASE_PATH);
+    $basePath = $documentRoot ? str_replace($documentRoot, '', $currentDir) : '';
+    $basePath = rtrim($basePath, '/');
+    define('BASE_URL', $protocol . '://' . $host . $basePath);
+}
 
 // Rutas
 define('FPDF_PATH', BASE_PATH . '/fpdf');
 define('ASSETS_PATH', BASE_PATH . '/assets');
 
-// Configuración de base de datos (misma que mae-v8)
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'geducativometa_mwb8');
-define('DB_USER', 'geducativometa_con_musr');
-define('DB_PASS', 'uAheER,c57IpODY7');
+// La configuración de base de datos se obtiene desde .env en app/Core/database.php
 
 // Función helper para incluir archivos
 function require_path($relativePath) {
