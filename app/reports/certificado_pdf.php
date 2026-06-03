@@ -155,15 +155,15 @@ $documentoFormateado = is_numeric($cliente[1]) ? number_format((float)$cliente[1
 $pdf->SetTextColor(0, 0, 0);
 $pdf->SetFont('Roboto-Regular', '', 12);
 $cedula = $documentoFormateado . " de " . $cliente[2];
-if ($cliente[15] == "CC" || $cliente[15] == "") {
+if ($cliente[14] == "CC" || $cliente[14] == "") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con cédula de ciudadanía No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "CE") {
+} elseif ($cliente[14] == "CE") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con cédula de extranjería No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "PASAPORTE") {
+} elseif ($cliente[14] == "PASAPORTE") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con pasaporte No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "TI") {
+} elseif ($cliente[14] == "TI") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con tarjeta de identidad No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "PPT") {
+} elseif ($cliente[14] == "PPT") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con permiso de protección temporal No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
 }
 
