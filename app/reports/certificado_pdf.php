@@ -167,7 +167,6 @@ if ($cliente[15] == "CC" || $cliente[15] == "") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con permiso de protección temporal No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
 }
 
-$pdf->SetTextColor(253, 184, 40);
 $pdf->SetFont('Montserrat-ExtraBold', '', 20);
 if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 44) {
 	$palabras = explode(" ", $row[3]);
