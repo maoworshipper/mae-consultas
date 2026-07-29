@@ -1,6 +1,6 @@
 <?php
 /**
- * Generación de certificado PDF (layout y lógica alineados con mae-v8/src/reports/certificado_pdf.php).
+ * Generación de certificado PDF (layout y fondos alineados con mae-v8 demo).
  * Requiere: config, database ($pdo apunta a la fuente elegida), funciones de seguridad ya aplicadas en el entrypoint.
  */
 
@@ -40,8 +40,8 @@ class PDF extends FPDF
 	function Footer()
 	{
 		global $empresa;
-		$this->SetY(-20);
-		$this->SetFont('Roboto-Regular', '', 10);
+		$this->SetY(-40);
+		$this->SetFont('Roboto-Regular', '', 9);
 		$this->SetTextColor(11, 77, 161);
 
 		$linea1 = mb_convert_encoding($empresa[3] . ' - ' . $empresa[4] . ' - ' . $empresa[5], 'ISO-8859-1', 'UTF-8');
@@ -145,7 +145,11 @@ if ($rowusr2[2] == "convenio" && $rowusr2[3] <> "") {
 		$pdf->Image(__DIR__ . '/../../convenios/' . $safeConvenioLogo, 85, 27, 50, 24);
 	}
 }
-$pdf->Ln(95);
+$pdf->Ln(50);
+$pdf->SetTextColor(0, 0, 0);
+$pdf->SetFont('Roboto-Regular', '', 16);
+$pdf->Cell(260, 5, "Certifica que", 0, 1, 'C');
+$pdf->Ln(5);
 $pdf->SetFont('Montserrat-ExtraBold', '', 20);
 $pdf->SetTextColor(11, 77, 161);
 $pdf->Cell(260, 5, strtoupper(mb_convert_encoding($cliente[4] . " " . $cliente[3], 'ISO-8859-1', 'UTF-8')), 0, 1, 'C');
@@ -155,19 +159,18 @@ $documentoFormateado = is_numeric($cliente[1]) ? number_format((float)$cliente[1
 $pdf->SetTextColor(0, 0, 0);
 $pdf->SetFont('Roboto-Regular', '', 12);
 $cedula = $documentoFormateado . " de " . $cliente[2];
-if ($cliente[15] == "CC" || $cliente[15] == "") {
+if ($cliente[14] == "CC" || $cliente[14] == "") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con cédula de ciudadanía No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "CE") {
+} elseif ($cliente[14] == "CE") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con cédula de extranjería No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "PASAPORTE") {
+} elseif ($cliente[14] == "PASAPORTE") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con pasaporte No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "TI") {
+} elseif ($cliente[14] == "TI") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con tarjeta de identidad No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
-} elseif ($cliente[15] == "PPT") {
+} elseif ($cliente[14] == "PPT") {
 	$pdf->Cell(260, 6, mb_convert_encoding("Con permiso de protección temporal No. " . $cedula . ", realizó el curso de", 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
 }
 
-$pdf->SetTextColor(253, 184, 40);
 $pdf->SetFont('Montserrat-ExtraBold', '', 20);
 if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 44) {
 	$palabras = explode(" ", $row[3]);
@@ -213,7 +216,7 @@ $pdf->SetFont('Roboto-Bold', '', 11);
 $pdf->Cell(260, 5, mb_convert_encoding("Código de validación: " . $row[0], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 
 if (QR_ENABLED) {
-	addQRToPDF($pdf, $idElemento, 230, 42, 40, 40, 'certificado');
+	addQRToPDF($pdf, $idElemento, 210, 140, 40, 40, 'certificado');
 }
 
 $nom_arc = "Certificado - " . $cliente[4] . " " . $cliente[3] . " - " . $_GET['certi'] . ".pdf";

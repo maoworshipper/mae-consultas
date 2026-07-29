@@ -1,6 +1,6 @@
 <?php
 /**
- * Generación de carnet PDF (layout y lógica alineados con mae-v8/src/reports/imprimir_carnet.php).
+ * Generación de carnet PDF (layout y fondos alineados con mae-v8 demo).
  * Requiere: config, database ($pdo apunta a la fuente elegida), funciones de seguridad ya aplicadas en el entrypoint.
  */
 
@@ -101,74 +101,73 @@ $pdf->AddFont('Roboto-Regular', '', 'Roboto-Regular.php');
 $pdf->AddFont('Roboto-Bold', '', 'Roboto-Bold.php');
 $pdf->AddFont('BarlowCondensed-Regular', '', 'BarlowCondensed-Regular.php');
 
-$pdf->Image(mae_report_image_path('bgcarnet'), 30, 8, 87, 55);
+// Marco del carnet (mm) — layout mae-v8 demo
+$cardX = 30;
+$cardY = 8;
+$cardW = 87;
+$cardH = 55;
+
+$pdf->Image(mae_report_image_path('bgcarnet'), $cardX, $cardY, $cardW, $cardH);
+
+$docId = (string) ($cliente[1] ?? '');
+$fotoPath = null;
+foreach (['.jpg', '.png', '.jpeg'] as $ext) {
+	$candidate = $fotosDir . '/' . $docId . $ext;
+	if ($docId !== '' && is_file($candidate)) {
+		$fotoPath = $candidate;
+		break;
+	}
+}
+$hasFoto = $fotoPath !== null;
+$qrEnabled = defined('QR_ENABLED') && QR_ENABLED;
+$qrReplacePhoto = $qrEnabled && defined('QR_REPLACE_PHOTO') && QR_REPLACE_PHOTO;
+// Media a la derecha (foto o QR). Nunca en la cabecera: tapa empresa/resolución del fondo.
+$useRightMedia = $hasFoto || $qrEnabled;
+$mediaX = 97;
+$mediaY = 27;
+$mediaQrSize = 16;
+$photoW = 18;
+$photoH = 22;
+$textX = 36;
+$textW = $useRightMedia ? 58 : 74;
+// Debajo del bloque empresa/resolución del fondo
+$contentY = $cardY + 16;
+
+$nombre = strtoupper(mb_convert_encoding(trim(($cliente[4] ?? '') . ' ' . ($cliente[3] ?? '')), 'ISO-8859-1', 'UTF-8'));
+$documento = mb_convert_encoding(trim(($cliente[14] ?? '') . ' ' . $docId), 'ISO-8859-1', 'UTF-8');
+$curso = strtoupper(mb_convert_encoding(trim((string) ($row[3] ?? '')), 'ISO-8859-1', 'UTF-8'));
 
 $pdf->SetTextColor(0, 0, 0);
-$pdf->Ln(24);
-
-$pdf->Cell(44);
+$pdf->SetXY($textX, $contentY);
 $pdf->SetFont('Montserrat-ExtraBold', '', 9);
-$pdf->Cell(50, 5, strtoupper(mb_convert_encoding($cliente[4] . " " . $cliente[3], 'ISO-8859-1', 'UTF-8')), 0, 1, 'L');
+$pdf->Cell($textW, 4.2, $nombre, 0, 2, 'L');
 
-$pdf->Cell(48);
-$pdf->Cell(50, 5, mb_convert_encoding($cliente[14] . " " . $cliente[1], 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
+$pdf->SetFont('Roboto-Bold', '', 8);
+$pdf->Cell($textW, 3.8, $documento, 0, 2, 'L');
 
-$pdf->SetTextColor(0, 0, 0);
-$pdf->Cell(42);
+$pdf->SetFont('Montserrat-ExtraBold', '', 6.5);
+$pdf->MultiCell($textW, 3.2, $curso, 0, 'L');
 
-if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 30) {
-	$palabras = explode(" ", $row[3]);
-	$caract = 0;
-	$linea1 = "";
-	$linea2 = "";
-	$linea3 = "";
-	foreach ($palabras as $palabra) {
-		$caract = $caract + strlen($palabra) + 1;
-		if ($caract > 30 && $caract <= 60) {
-			$linea2 .= $palabra . " ";
-		} elseif ($caract > 60) {
-			$linea3 .= $palabra . " ";
-		} else {
-			$linea1 .= $palabra . " ";
-		}
-	}
-	$pdf->SetFont('Montserrat-ExtraBold', '', 7);
-	$pdf->Cell(60, 3, strtoupper(strtolower(mb_convert_encoding($linea1, 'ISO-8859-1', 'UTF-8'))), 0, 1, 'L');
-	$pdf->Cell(42);
-	$pdf->Cell(60, 2, strtoupper(strtolower(mb_convert_encoding($linea2, 'ISO-8859-1', 'UTF-8'))), 0, 1, 'L');
-} else {
-	$pdf->SetFont('Montserrat-ExtraBold', '', 7);
-	$pdf->Cell(60, 5, mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
-	$pdf->Ln(1);
-}
-
-if (QR_ENABLED && QR_REPLACE_PHOTO) {
-	addQRToPDF($pdf, $idElemento, 93, 32, 20, 20, 'carnet');
-} else {
-	if (is_file($fotosDir . '/' . $cliente[1] . '.jpg')) {
-		$pdf->Image($fotosDir . '/' . $cliente[1] . '.jpg', 90, 32, 25, 31);
-	} elseif (is_file($fotosDir . '/' . $cliente[1] . '.png')) {
-		$pdf->Image($fotosDir . '/' . $cliente[1] . '.png', 90, 32, 25, 31);
-	} elseif (is_file($fotosDir . '/' . $cliente[1] . '.jpeg')) {
-		$pdf->Image($fotosDir . '/' . $cliente[1] . '.jpeg', 90, 32, 25, 31);
-	}
-
-	if (QR_ENABLED) {
-		addQRToPDF($pdf, $idElemento, 90, 10, 20, 20, 'carnet');
+if ($qrReplacePhoto || (!$hasFoto && $qrEnabled)) {
+	addQRToPDF($pdf, $idElemento, $mediaX, $mediaY, $mediaQrSize, $mediaQrSize, 'carnet');
+} elseif ($hasFoto) {
+	$pdf->Image($fotoPath, $mediaX, $mediaY, $photoW, $photoH);
+	if ($qrEnabled) {
+		addQRToPDF($pdf, $idElemento, $mediaX + 3, $mediaY + $photoH + 1, 12, 12, 'carnet');
 	}
 }
 
+$footerX = $cardX + 4;
+$footerW = $cardW - 8;
 $pdf->SetTextColor(11, 77, 161);
-$pdf->SetFont('BarlowCondensed-Regular', '', 10);
-$pdf->Ln(1);
-$pdf->Cell(30);
-$pdf->Cell(66, 4, mb_convert_encoding("Fecha de Expedición: " . $fechaEmitCert, 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+$pdf->SetFont('BarlowCondensed-Regular', '', 8);
+$pdf->SetXY($footerX, $cardY + 40);
+$pdf->Cell($footerW, 3.5, mb_convert_encoding('Fecha de Expedición: ' . $fechaEmitCert, 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 
-$pdf->SetTextColor(0,0,0);
-$pdf->SetFont('Montserrat-ExtraBold', '', 9);
-$pdf->Ln(2);
-$pdf->Cell(30);
-$pdf->Cell(66, 5, mb_convert_encoding("Código de validación: " . $row[0], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
+$pdf->SetTextColor(60, 60, 60);
+$pdf->SetFont('Roboto-Bold', '', 7);
+$pdf->SetX($footerX);
+$pdf->Cell($footerW, 3.5, mb_convert_encoding('Código de validación: ' . $row[0], 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
 
 $nom_arc = "Carnet - " . $cliente[4] . " " . $cliente[3] . " - " . $_GET['certi'] . ".pdf";
 ob_end_clean();
