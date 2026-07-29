@@ -19,20 +19,19 @@ $basePath = BASE_URL;
 </head>
 <body>
     <div class="container">
-        <!-- Logo -->
+        <!-- Company name (demo: text instead of logo) -->
         <div class="row">
             <div class="col-12 text-center">
                 <header>
-                    <?php if (isset($companyInfo['website']) && !empty($companyInfo['website'])): ?>
-                        <a href="http://<?php echo htmlspecialchars($companyInfo['website']); ?>">
-                            <img src="<?php echo $basePath; ?>/assets/images/logo.png" 
-                                 alt="Logo" 
-                                 class="logo">
+                    <?php
+                    $companyName = htmlspecialchars($companyInfo['nombre'] ?? 'MAE Consultas');
+                    if (!empty($companyInfo['website'])):
+                    ?>
+                        <a href="http://<?php echo htmlspecialchars($companyInfo['website']); ?>" class="company-name">
+                            <?php echo $companyName; ?>
                         </a>
                     <?php else: ?>
-                        <img src="<?php echo $basePath; ?>/assets/images/logo.png" 
-                             alt="Logo" 
-                             class="logo">
+                        <h1 class="company-name"><?php echo $companyName; ?></h1>
                     <?php endif; ?>
                 </header>
             </div>

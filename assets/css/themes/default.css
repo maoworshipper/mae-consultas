@@ -190,6 +190,21 @@ body {
   height: 100%;
 }
 
+.company-name {
+  display: inline-block;
+  margin: var(--spacing-large) 0;
+  color: var(--color-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+a.company-name:hover {
+  color: var(--color-primary-dark);
+  text-decoration: none;
+}
+
 /* Modern Panel Styles */
 .panel {
   background: var(--color-background);
