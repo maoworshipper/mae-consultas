@@ -1,0 +1,7 @@
+{
+  "QR_ENABLED": false,
+  "QR_VERIFICATION_URL": "https://cursos.autolider.com.co/index.php?certi={id}",
+  "QR_REPLACE_PHOTO": false,
+  "FEATURE_CERTIFICATE_ENABLED": true,
+  "FEATURE_CARD_ENABLED": true
+}

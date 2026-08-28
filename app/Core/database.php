@@ -1,16 +1,17 @@
 <?php
-// Conexión a base de datos para consulta de certificados
+// Conexión a base de datos: tenant (hosted) o DB_* del .env (LICENSE_SKIP).
 
-require_once __DIR__ . '/env.php';
+if (!function_exists('mae_tenant_db_credentials')) {
+    require_once __DIR__ . '/config.php';
+}
 
-mae_load_env();
-
-$dbHost = mae_env('DB_HOST', 'localhost');
-$dbName = mae_env('DB_NAME', 'maewebdb');
-$dbUser = mae_env('DB_USER', 'root');
-$dbPass = mae_env('DB_PASS', '');
-$dbCharset = mae_env('DB_CHARSET', 'utf8mb4');
-$legacyEnabled = mae_env_bool('LEGACY_DB_ENABLED', false);
+$maeDb = mae_tenant_db_credentials();
+$dbHost = $maeDb['host'] !== '' ? $maeDb['host'] : 'localhost';
+$dbName = $maeDb['name'];
+$dbUser = $maeDb['user'];
+$dbPass = $maeDb['pass'];
+$dbCharset = $maeDb['charset'] !== '' ? $maeDb['charset'] : 'utf8mb4';
+$legacyEnabled = mae_tenant_is_dev_skip() && mae_env_bool('LEGACY_DB_ENABLED', false);
 
 try {
     $pdo = new PDO(

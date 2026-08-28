@@ -23,15 +23,19 @@ $basePath = BASE_URL;
         <div class="row">
             <div class="col-12 text-center">
                 <header>
+                    <?php
+                    require_once BASE_PATH . '/app/Core/mae_report_images.php';
+                    $logoUrl = htmlspecialchars(mae_tenant_logo_url());
+                    ?>
                     <?php if (isset($companyInfo['website']) && !empty($companyInfo['website'])): ?>
                         <a href="http://<?php echo htmlspecialchars($companyInfo['website']); ?>">
-                            <img src="<?php echo $basePath; ?>/assets/images/logo.png" 
-                                 alt="Logo" 
+                            <img src="<?php echo $logoUrl; ?>"
+                                 alt="Logo"
                                  class="logo">
                         </a>
                     <?php else: ?>
-                        <img src="<?php echo $basePath; ?>/assets/images/logo.png" 
-                             alt="Logo" 
+                        <img src="<?php echo $logoUrl; ?>"
+                             alt="Logo"
                              class="logo">
                     <?php endif; ?>
                 </header>

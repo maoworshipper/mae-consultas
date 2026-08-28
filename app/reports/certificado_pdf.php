@@ -141,8 +141,11 @@ $pdf->AddFont('Roboto-Bold', '', 'Roboto-Bold.php');
 
 if ($rowusr2[2] == "convenio" && $rowusr2[3] <> "") {
 	$safeConvenioLogo = mae_sanitize_image_filename((string) $rowusr2[3]);
-	if ($safeConvenioLogo !== '' && file_exists(__DIR__ . '/../../convenios/' . $safeConvenioLogo)) {
-		$pdf->Image(__DIR__ . '/../../convenios/' . $safeConvenioLogo, 85, 27, 50, 24);
+	if ($safeConvenioLogo !== '') {
+		$convenioPath = mae_convenio_logo_absolute_path($safeConvenioLogo);
+		if ($convenioPath !== null) {
+			$pdf->Image($convenioPath, 85, 27, 50, 24);
+		}
 	}
 }
 $pdf->Ln(95);

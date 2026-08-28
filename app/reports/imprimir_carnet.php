@@ -90,8 +90,6 @@ try {
 	die('Error al obtener datos del cliente');
 }
 
-$fotosDir = __DIR__ . '/../../fotos';
-
 $pdf = new PDF('P', 'mm', 'A4');
 $pdf->AliasNbPages();
 $pdf->AddPage();
@@ -145,12 +143,9 @@ if (strlen(mb_convert_encoding($row[3], 'ISO-8859-1', 'UTF-8')) > 30) {
 if (QR_ENABLED && QR_REPLACE_PHOTO) {
 	addQRToPDF($pdf, $idElemento, 93, 32, 20, 20, 'carnet');
 } else {
-	if (is_file($fotosDir . '/' . $cliente[1] . '.jpg')) {
-		$pdf->Image($fotosDir . '/' . $cliente[1] . '.jpg', 90, 32, 25, 31);
-	} elseif (is_file($fotosDir . '/' . $cliente[1] . '.png')) {
-		$pdf->Image($fotosDir . '/' . $cliente[1] . '.png', 90, 32, 25, 31);
-	} elseif (is_file($fotosDir . '/' . $cliente[1] . '.jpeg')) {
-		$pdf->Image($fotosDir . '/' . $cliente[1] . '.jpeg', 90, 32, 25, 31);
+	$fotoPath = mae_cliente_foto_absolute_path((string) ($cliente[1] ?? ''));
+	if ($fotoPath !== null) {
+		$pdf->Image($fotoPath, 90, 32, 25, 31);
 	}
 
 	if (QR_ENABLED) {

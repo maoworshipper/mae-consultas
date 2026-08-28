@@ -28,18 +28,18 @@ function normalizeDataSource($source) {
 }
 
 /**
- * Feature flags from environment.
+ * Feature flags: branding pack (hosted) o .env (LICENSE_SKIP).
  */
 function isLegacySearchEnabled() {
-    return mae_env_bool('LEGACY_DB_ENABLED', false);
+    return mae_tenant_is_dev_skip() && mae_env_bool('LEGACY_DB_ENABLED', false);
 }
 
 function isCertificateFeatureEnabled() {
-    return mae_env_bool('FEATURE_CERTIFICATE_ENABLED', true);
+    return mae_consultas_certificate_enabled();
 }
 
 function isCardFeatureEnabled() {
-    return mae_env_bool('FEATURE_CARD_ENABLED', true);
+    return mae_consultas_card_enabled();
 }
 
 /**

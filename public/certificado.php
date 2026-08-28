@@ -1,8 +1,9 @@
 <?php
-require_once __DIR__ . '/app/Core/config.php';
-require_once __DIR__ . '/app/Core/database.php';
-require_once __DIR__ . '/app/Core/functions.php';
-require_once __DIR__ . '/app/Core/security.php';
+$appRoot = dirname(__DIR__);
+require_once $appRoot . '/app/Core/config.php';
+require_once $appRoot . '/app/Core/database.php';
+require_once $appRoot . '/app/Core/functions.php';
+require_once $appRoot . '/app/Core/security.php';
 
 date_default_timezone_set('America/Bogota');
 
@@ -32,4 +33,4 @@ if (!$selectedPdo instanceof PDO) {
 
 $pdo = $selectedPdo;
 define('MAE_CONSULTAS_INTERNAL', true);
-require_once __DIR__ . '/app/reports/certificado_pdf.php';
+require_once $appRoot . '/app/reports/certificado_pdf.php';

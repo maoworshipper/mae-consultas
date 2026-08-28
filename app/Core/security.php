@@ -102,6 +102,21 @@ if (!function_exists('mae_enforce_rate_limit')) {
     }
 }
 
+if (!function_exists('mae_force_https')) {
+    function mae_force_https(): void
+    {
+        if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
+            $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+            $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+            if ($host === '') {
+                return;
+            }
+            header('Location: https://' . $host . $uri, true, 301);
+            exit;
+        }
+    }
+}
+
 if (!function_exists('mae_reject_request')) {
     function mae_reject_request($statusCode, $message) {
         http_response_code((int) $statusCode);

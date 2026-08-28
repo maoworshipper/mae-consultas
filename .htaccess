@@ -1,25 +1,23 @@
 # php -- BEGIN cPanel-generated handler, do not edit
-# Set the "ea-php80" package as the default "PHP" programming language.
+# MAE Consultas requiere PHP 8.3. Ajuste en cPanel → Select PHP Version.
 <IfModule mime_module>
-  AddHandler application/x-httpd-ea-php80___lsphp .php .phtml
+  AddHandler application/x-httpd-ea-php83___lsphp .php .phtml
 </IfModule>
 # php -- END cPanel-generated handler, do not edit
 
-# --- Application security rules ----------------------------------
-# Disable directory listing
+# Compat: si el Document Root sigue siendo la raíz del proyecto,
+# reescribe hacia public/. Preferible: apuntar el docroot a /public.
+
 Options -Indexes
 
-# Basic security headers
 <IfModule mod_headers.c>
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "no-referrer-when-downgrade"
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
   Header always set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=()"
 </IfModule>
 
-# Deny access to sensitive file extensions
 <FilesMatch "\.(sql|env|key|pem|inc|bak)$">
   <IfModule mod_authz_core.c>
     Require all denied
@@ -29,8 +27,7 @@ Options -Indexes
   </IfModule>
 </FilesMatch>
 
-# Deny access to specific sensitive files
-<FilesMatch "^(config\.php|database\.php|\.env|README\.md|CHANGELOG\.md|LICENSE\.md|\.gitignore|composer\.json|composer\.lock)$">
+<FilesMatch "^(tenants\.secrets\.php|\.env)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
@@ -39,48 +36,18 @@ Options -Indexes
   </IfModule>
 </FilesMatch>
 
-# Deny access to hidden files (.env, .git, etc.) except .well-known
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteRule "(^|/)\.(?!well-known/)" - [F]
-</IfModule>
-
-# Block direct access to sensitive directories by rewriting to 403
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # Fuerza HTTPS en producción
-  RewriteCond %{HTTP_HOST} !^localhost(:[0-9]+)?$ [NC]
-  RewriteCond %{HTTPS} !=on
-  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  RewriteRule (^|/)\.|/\. - [F]
 
-  # Protect internal directories (no web access)
-  RewriteRule ^(app|config|fpdf|private|tests|.git)/ - [F,NC,L]
+  RewriteRule ^public/ - [L]
 
-</IfModule>
+  RewriteRule ^(app|config|branding|fpdf|scripts|docs|tests|\.git)/ - [F,NC,L]
 
-# Allow access to public files
-<Files "*.php">
-  <IfModule mod_authz_core.c>
-    Require all granted
-  </IfModule>
-  <IfModule !mod_authz_core.c>
-    Allow from all
-  </IfModule>
-</Files>
+  RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]
+  RewriteCond %{DOCUMENT_ROOT}/public/$1 -d
+  RewriteRule ^(.*)$ public/$1 [L]
 
-# Set default charset
-AddDefaultCharset UTF-8
-
-# Enable compression
-<IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/plain
-  AddOutputFilterByType DEFLATE text/html
-  AddOutputFilterByType DEFLATE text/xml
-  AddOutputFilterByType DEFLATE text/css
-  AddOutputFilterByType DEFLATE application/xml
-  AddOutputFilterByType DEFLATE application/xhtml+xml
-  AddOutputFilterByType DEFLATE application/rss+xml
-  AddOutputFilterByType DEFLATE application/javascript
-  AddOutputFilterByType DEFLATE application/x-javascript
+  RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
