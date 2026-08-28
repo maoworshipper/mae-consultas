@@ -27,6 +27,8 @@
     // Use clientName and clientId from controller if available
     $displayName = isset($clientName) ? trim($clientName) : '';
     $displayId = isset($clientId) ? $clientId : '';
+    $certificateEnabled = isCertificateFeatureEnabled();
+    $cardEnabled = isCardFeatureEnabled();
     ?>
 
     <hr style='margin:5px;'>
@@ -48,8 +50,12 @@
                         <td class="date-header">Fecha</td>
                         <td>Horas</td>
                         <td class="date-header">Válido Hasta</td>
-                        <td>Certificado</td>
-                        <td>Carnet</td>
+                        <?php if ($certificateEnabled): ?>
+                            <td>Certificado</td>
+                        <?php endif; ?>
+                        <?php if ($cardEnabled): ?>
+                            <td>Carnet</td>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -65,20 +71,40 @@
                                     &nbsp;
                                 <?php endif; ?>
                             </td>
-                            <td style='margin:auto;'>
-                                <a href='<?php echo htmlspecialchars($basePath); ?>/certificado.php?certi=<?php echo $result['id']; ?>'
-                                    target='_blank' class='btn-custom input-lg text-center'
-                                    style='text-decoration:none;display:block;'>
-                                    Certificado
-                                </a>
-                            </td>
-                            <td style='margin:auto'>
-                                <a href='<?php echo htmlspecialchars($basePath); ?>/carnet.php?certi=<?php echo $result['id']; ?>'
-                                    target='_blank' class='btn-custom input-lg text-center'
-                                    style='text-decoration:none;display:block;'>
-                                    Carnet
-                                </a>
-                            </td>
+                            <?php
+                            $source = normalizeDataSource($result['source'] ?? 'main');
+                            $certToken = mae_generate_certificate_token($result['id'], $source);
+                            ?>
+                            <?php if ($certificateEnabled): ?>
+                                <td style='margin:auto;'>
+                                    <?php
+                                    $certUrl = htmlspecialchars($basePath) . '/certificado.php?certi=' . urlencode((string) $result['id']) . '&src=' . urlencode($source);
+                                    if ($certToken !== '') {
+                                        $certUrl .= '&token=' . urlencode($certToken);
+                                    }
+                                    ?>
+                                    <a href='<?php echo $certUrl; ?>'
+                                        target='_blank' class='btn-custom input-lg text-center'
+                                        style='text-decoration:none;display:block;'>
+                                        Certificado
+                                    </a>
+                                </td>
+                            <?php endif; ?>
+                            <?php if ($cardEnabled): ?>
+                                <td style='margin:auto'>
+                                    <?php
+                                    $cardUrl = htmlspecialchars($basePath) . '/carnet.php?certi=' . urlencode((string) $result['id']) . '&src=' . urlencode($source);
+                                    if ($certToken !== '') {
+                                        $cardUrl .= '&token=' . urlencode($certToken);
+                                    }
+                                    ?>
+                                    <a href='<?php echo $cardUrl; ?>'
+                                        target='_blank' class='btn-custom input-lg text-center'
+                                        style='text-decoration:none;display:block;'>
+                                        Carnet
+                                    </a>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

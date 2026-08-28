@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Secretos de BD por tenant (usar MAE_SECRETS_PATH hacia mae-v8)
+/config/tenants.secrets.php
+
+# Uploads locales de fallback (producción lee mae/public/tenants)
+/public/tenants/*/fotos/*
+/public/tenants/*/convenios/*
+!/public/tenants/**/.gitkeep

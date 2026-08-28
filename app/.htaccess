@@ -1,0 +1,9 @@
+# Impide acceso HTTP directo a código PHP y otros archivos bajo /app/.
+# Los require/include desde scripts en public/ siguen funcionando (no pasan por Apache).
+
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>

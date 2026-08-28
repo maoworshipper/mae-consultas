@@ -1,0 +1,47 @@
+# Deploy único al cPanel de Que Nube (todos los tenants de consulta).
+name: Deploy consultas hosted
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare hosted artifact
+        run: bash scripts/ci/prepare-hosted-artifact.sh
+
+      - name: Strip non-production paths
+        run: bash scripts/ci/strip-nonprod-artifact.sh
+
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.SFTP_SERVER_CONSULTAS }}
+          username: ${{ secrets.SFTP_USER_CONSULTAS }}
+          password: ${{ secrets.SFTP_PASSWORD_CONSULTAS }}
+          protocol: ftps
+          port: 21
+          security: strict
+          server-dir: /
+          local-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.gitignore
+            **/.DS_Store
+            **/docs/**
+            **/tests/**
+            **/test-results/**
+            **/.env
+            **/.env.*
+            **/.env.example
+            **/scripts/**
+            **/.github/**
+            **/.cursor/**
+            **/.claude/**
+            **/config/tenants.secrets.php
+            **/config/tenants.secrets.example.php
+            **/*.md
